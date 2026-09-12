@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-graphite-100;
+  }
+
+  html {
+    @apply bg-white text-graphite-950 font-sans;
+  }
+
+  body {
+    @apply bg-white;
+  }
+
+  h1 {
+    @apply text-2xl font-bold text-navy-950;
+  }
+
+  h2 {
+    @apply text-xl font-semibold text-navy-900;
+  }
+
+  h3 {
+    @apply text-lg font-semibold text-navy-800;
+  }
+
+  p {
+    @apply text-base text-graphite-700 leading-relaxed;
+  }
+
+  a {
+    @apply text-navy-700 hover:text-navy-900 transition-colors;
+  }
+}
+
+@layer components {
+  .nexus-panel {
+    @apply bg-white border border-graphite-100 rounded-lg shadow-sm;
+  }
+
+  .nexus-section-header {
+    @apply text-xs font-bold uppercase tracking-wide text-graphite-500 px-md py-sm border-b border-graphite-100;
+  }
+
+  .nexus-status-badge {
+    @apply inline-flex items-center gap-sm px-sm py-xs rounded-md text-xs font-medium;
+  }
+
+  .nexus-status-success {
+    @apply nexus-status-badge bg-success/10 text-success;
+  }
+
+  .nexus-status-warning {
+    @apply nexus-status-badge bg-warning/10 text-warning;
+  }
+
+  .nexus-status-error {
+    @apply nexus-status-badge bg-error/10 text-error;
+  }
+
+  .nexus-status-info {
+    @apply nexus-status-badge bg-info/10 text-info;
+  }
+}
