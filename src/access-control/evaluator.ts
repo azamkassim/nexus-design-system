@@ -2,23 +2,50 @@ import type {
   AccessDecision,
   AccessRequest,
   Action,
+  AdministrativeRole,
   BusinessRole,
   DelegatedAuthority,
+  ResourceType,
   WorkflowStage,
 } from './model'
 
 const BUSINESS_ROLE_ACTIONS: Record<Action, readonly BusinessRole[]> = {
-  VIEW: ['RM', 'TEAM_LEAD', 'CREDIT', 'RISK', 'POLICY_OWNER', 'APPROVER', 'MONITORING', 'READ_ONLY'],
+  VIEW: [
+    'RM',
+    'TEAM_LEAD',
+    'CREDIT',
+    'RISK',
+    'POLICY_OWNER',
+    'APPROVER',
+    'MONITORING',
+    'READ_ONLY',
+  ],
   CREATE: ['RM', 'TEAM_LEAD', 'MONITORING'],
   EDIT: ['RM', 'TEAM_LEAD', 'MONITORING'],
-  COMMENT: ['RM', 'TEAM_LEAD', 'CREDIT', 'RISK', 'POLICY_OWNER', 'APPROVER', 'MONITORING'],
+  COMMENT: [
+    'RM',
+    'TEAM_LEAD',
+    'CREDIT',
+    'RISK',
+    'POLICY_OWNER',
+    'APPROVER',
+    'MONITORING',
+  ],
   SUBMIT: ['RM', 'TEAM_LEAD'],
   VERIFY: ['TEAM_LEAD', 'CREDIT', 'RISK', 'POLICY_OWNER'],
   ENDORSE: ['TEAM_LEAD', 'CREDIT', 'RISK'],
   APPROVE: ['APPROVER'],
   RETURN: ['TEAM_LEAD', 'CREDIT', 'RISK', 'APPROVER'],
   OVERRIDE: ['POLICY_OWNER', 'APPROVER'],
-  EXPORT: ['RM', 'TEAM_LEAD', 'CREDIT', 'RISK', 'POLICY_OWNER', 'APPROVER', 'MONITORING'],
+  EXPORT: [
+    'RM',
+    'TEAM_LEAD',
+    'CREDIT',
+    'RISK',
+    'POLICY_OWNER',
+    'APPROVER',
+    'MONITORING',
+  ],
   SHARE: ['TEAM_LEAD', 'CREDIT', 'RISK', 'POLICY_OWNER', 'APPROVER'],
   ADMINISTER: [],
 }
@@ -31,6 +58,27 @@ const WORKFLOW_ACTIONS: Partial<Record<Action, readonly WorkflowStage[]>> = {
   APPROVE: ['APPROVAL'],
   RETURN: ['REVIEW', 'CREDIT_REVIEW', 'RISK_REVIEW', 'APPROVAL'],
   OVERRIDE: ['APPROVAL', 'MONITORING'],
+}
+
+const SERVICE_FORBIDDEN_ACTIONS: readonly Action[] = [
+  'VERIFY',
+  'ENDORSE',
+  'APPROVE',
+  'RETURN',
+  'OVERRIDE',
+  'ADMINISTER',
+]
+
+const ADMINISTER_ROLES: Partial<
+  Record<ResourceType, readonly AdministrativeRole[]>
+> = {
+  IDENTITY: ['USER_ADMIN', 'ACCESS_ADMIN', 'SUPER_ADMIN'],
+  TEAM: ['ACCESS_ADMIN', 'SUPER_ADMIN'],
+  ROLE: ['ACCESS_ADMIN', 'POLICY_ADMIN', 'SUPER_ADMIN'],
+  ADMIN_DIRECTORY: ['USER_ADMIN', 'ACCESS_ADMIN', 'SUPER_ADMIN'],
+  SYSTEM: ['SYSTEM_ADMIN', 'SUPER_ADMIN'],
+  WORKSPACE: ['ACCESS_ADMIN', 'SUPER_ADMIN'],
+  POLICY: ['POLICY_ADMIN', 'SUPER_ADMIN'],
 }
 
 function deny(
@@ -75,17 +123,94 @@ function hasActiveWorkspaceMembership(request: AccessRequest): boolean {
   )
 }
 
+function hasAnyAdministrativeRole(
+  request: AccessRequest,
+  allowedRoles: readonly AdministrativeRole[],
+): boolean {
+  return request.subject.administrativeRoles.some((role) =>
+    allowedRoles.includes(role),
+  )
+}
+
+function administrativeAccessDecision(
+  request: AccessRequest,
+): boolean | undefined {
+  const { action, resource, subject } = request
+
+  if (action === 'ADMINISTER') {
+    const allowedRoles = ADMINISTER_ROLES[resource.resourceType]
+    return Boolean(allowedRoles && hasAnyAdministrativeRole(request, allowedRoles))
+  }
+
+  if (resource.resourceType === 'ADMIN_DIRECTORY') {
+    return action === 'VIEW' && subject.accountClass !== 'SERVICE'
+  }
+
+  if (resource.resourceType === 'IDENTITY') {
+    if (action === 'VIEW' && resource.resourceId === subject.userId) {
+      return true
+    }
+
+    if (action === 'VIEW') {
+      return hasAnyAdministrativeRole(request, [
+        'USER_ADMIN',
+        'ACCESS_ADMIN',
+        'SUPER_ADMIN',
+      ])
+    }
+
+    return false
+  }
+
+  if (resource.resourceType === 'TEAM' || resource.resourceType === 'ROLE') {
+    if (action === 'VIEW') {
+      return subject.accountClass === 'ORGANISATION'
+    }
+
+    return undefined
+  }
+
+  if (resource.resourceType === 'SYSTEM') {
+    if (action === 'VIEW') {
+      return hasAnyAdministrativeRole(request, ['SYSTEM_ADMIN', 'SUPER_ADMIN'])
+    }
+
+    return false
+  }
+
+  if (resource.resourceType === 'AUDIT') {
+    if (action === 'VIEW' || action === 'EXPORT') {
+      return hasAnyAdministrativeRole(request, ['AUDIT_ADMIN', 'SUPER_ADMIN'])
+    }
+
+    return false
+  }
+
+  if (resource.resourceType === 'POLICY' && action === 'ADMINISTER') {
+    return hasAnyAdministrativeRole(request, ['POLICY_ADMIN', 'SUPER_ADMIN'])
+  }
+
+  return undefined
+}
+
 function roleAllowsAction(request: AccessRequest): boolean {
-  if (request.action === 'ADMINISTER') {
-    return request.subject.administrativeRoles.length > 0
+  const administrativeDecision = administrativeAccessDecision(request)
+  if (administrativeDecision !== undefined) {
+    return administrativeDecision
   }
 
   if (request.subject.accountClass === 'EXTERNAL') {
-    return ['VIEW', 'CREATE', 'COMMENT'].includes(request.action)
+    if (request.action === 'CREATE') {
+      return request.resource.resourceType === 'EVIDENCE'
+    }
+
+    return request.action === 'VIEW' || request.action === 'COMMENT'
   }
 
   const allowedRoles = BUSINESS_ROLE_ACTIONS[request.action]
-  return request.subject.businessRoles.some((role) => allowedRoles.includes(role))
+  return request.subject.businessRoles.some((role) =>
+    allowedRoles.includes(role),
+  )
 }
 
 function workflowAllowsAction(request: AccessRequest): boolean {
@@ -116,7 +241,6 @@ function authorityMatches(
 
   if (
     authority.currency &&
-    request.resource.currency &&
     authority.currency !== request.resource.currency
   ) {
     return false
@@ -124,8 +248,8 @@ function authorityMatches(
 
   if (
     authority.maxAmount !== undefined &&
-    request.resource.amount !== undefined &&
-    request.resource.amount > authority.maxAmount
+    (request.resource.amount === undefined ||
+      request.resource.amount > authority.maxAmount)
   ) {
     return false
   }
@@ -146,6 +270,14 @@ export function evaluateAccess(request: AccessRequest): AccessDecision {
     )
   }
 
+  if (Number.isNaN(Date.parse(request.now))) {
+    return deny(
+      request,
+      'DENY_MISSING_CONTEXT',
+      'Authorization time is invalid.',
+    )
+  }
+
   if (!request.subject.active) {
     return deny(
       request,
@@ -159,6 +291,18 @@ export function evaluateAccess(request: AccessRequest): AccessDecision {
       request,
       'DENY_PERSONAL_ACCOUNT',
       'Personal identities cannot access organisation-managed resources.',
+    )
+  }
+
+  if (
+    request.subject.accountClass === 'SERVICE' &&
+    (!request.subject.ownerUserId ||
+      SERVICE_FORBIDDEN_ACTIONS.includes(request.action))
+  ) {
+    return deny(
+      request,
+      'DENY_SERVICE_IDENTITY',
+      'Service identities require an accountable owner and cannot perform human decision actions.',
     )
   }
 
@@ -192,6 +336,18 @@ export function evaluateAccess(request: AccessRequest): AccessDecision {
     )
   }
 
+  if (
+    request.resource.sensitivity === 'RESTRICTED_CUSTOMER' &&
+    request.subject.accountClass === 'EXTERNAL' &&
+    !request.resource.workspaceId
+  ) {
+    return deny(
+      request,
+      'DENY_SENSITIVITY',
+      'Restricted customer data requires an explicit workspace boundary.',
+    )
+  }
+
   if (!roleAllowsAction(request)) {
     return deny(
       request,
@@ -205,18 +361,6 @@ export function evaluateAccess(request: AccessRequest): AccessDecision {
       request,
       'DENY_WORKFLOW_STAGE',
       'The requested action is not permitted at the current workflow stage.',
-    )
-  }
-
-  if (
-    request.resource.sensitivity === 'RESTRICTED_CUSTOMER' &&
-    request.subject.accountClass === 'EXTERNAL' &&
-    !request.resource.workspaceId
-  ) {
-    return deny(
-      request,
-      'DENY_SENSITIVITY',
-      'Restricted customer data requires an explicit workspace boundary.',
     )
   }
 
