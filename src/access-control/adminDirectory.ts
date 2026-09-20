@@ -40,5 +40,11 @@ export function resolveMyAdministrators(
         entry.organisationId === subject.organisationId &&
         entry.roles.some((role) => VISIBLE_ADMIN_ROLES.includes(role)),
     )
-    .map(({ active: _active, ...entry }) => entry)
+    .map((entry) => ({
+      userId: entry.userId,
+      organisationId: entry.organisationId,
+      roles: entry.roles,
+      displayLabel: entry.displayLabel,
+      supportChannel: entry.supportChannel,
+    }))
 }
