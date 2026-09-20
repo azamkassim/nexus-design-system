@@ -1,4 +1,8 @@
-export type AccountClass = 'ORGANISATION' | 'EXTERNAL' | 'PERSONAL'
+export type AccountClass =
+  | 'ORGANISATION'
+  | 'EXTERNAL'
+  | 'PERSONAL'
+  | 'SERVICE'
 
 export type AdministrativeRole =
   | 'USER_ADMIN'
@@ -48,6 +52,23 @@ export type WorkflowStage =
   | 'MONITORING'
   | 'CLOSED'
 
+export type ResourceType =
+  | 'IDENTITY'
+  | 'TEAM'
+  | 'ROLE'
+  | 'ADMIN_DIRECTORY'
+  | 'SYSTEM'
+  | 'WORKSPACE'
+  | 'CUSTOMER'
+  | 'APPLICATION'
+  | 'FACILITY'
+  | 'SECURITY'
+  | 'CONTRACT'
+  | 'EVIDENCE'
+  | 'KNOWLEDGE'
+  | 'POLICY'
+  | 'AUDIT'
+
 export interface DelegatedAuthority {
   authorityId: string
   action: Action
@@ -69,6 +90,7 @@ export interface Identity {
   userId: string
   organisationId?: string
   accountClass: AccountClass
+  ownerUserId?: string
   active: boolean
   administrativeRoles: AdministrativeRole[]
   businessRoles: BusinessRole[]
@@ -79,17 +101,7 @@ export interface Identity {
 
 export interface Resource {
   resourceId: string
-  resourceType:
-    | 'WORKSPACE'
-    | 'CUSTOMER'
-    | 'APPLICATION'
-    | 'FACILITY'
-    | 'SECURITY'
-    | 'CONTRACT'
-    | 'EVIDENCE'
-    | 'KNOWLEDGE'
-    | 'POLICY'
-    | 'AUDIT'
+  resourceType: ResourceType
   organisationId: string
   workspaceId?: string
   sensitivity: Sensitivity
@@ -113,6 +125,7 @@ export type DecisionCode =
   | 'DENY_INACTIVE_IDENTITY'
   | 'DENY_ORGANISATION_MISMATCH'
   | 'DENY_PERSONAL_ACCOUNT'
+  | 'DENY_SERVICE_IDENTITY'
   | 'DENY_WORKSPACE_MEMBERSHIP'
   | 'DENY_ROLE'
   | 'DENY_WORKFLOW_STAGE'
