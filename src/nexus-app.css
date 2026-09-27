@@ -1,0 +1,153 @@
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+.nexus-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28rem),
+    #f7f8fb;
+}
+
+.nexus-topbar {
+  background: linear-gradient(135deg, #0a0e27 0%, #0f1535 62%, #1a1f3a 100%);
+}
+
+.nexus-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.nexus-kpi-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.nexus-main-grid {
+  grid-template-columns: minmax(0, 1.75fr) minmax(19rem, 0.85fr);
+}
+
+.nexus-workspace-grid {
+  grid-template-columns: 18rem minmax(0, 1fr) 20rem;
+}
+
+.nexus-card {
+  background: white;
+  border: 1px solid #e4e7ee;
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 30px rgba(10, 14, 39, 0.04);
+}
+
+.nexus-card-hover {
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.nexus-card-hover:hover {
+  transform: translateY(-1px);
+  border-color: #cbd3e1;
+  box-shadow: 0 12px 34px rgba(10, 14, 39, 0.08);
+}
+
+.nexus-progress {
+  height: 0.4rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eef0f4;
+}
+
+.nexus-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #252d4f, #3b82f6);
+}
+
+.nexus-btn {
+  border: 1px solid #d4d6db;
+  border-radius: 0.5rem;
+  background: white;
+  color: #1a1f3a;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nexus-btn:hover {
+  background: #f7f8fb;
+}
+
+.nexus-btn-primary {
+  border-color: #0f1535;
+  background: #0f1535;
+  color: white;
+}
+
+.nexus-btn-primary:hover {
+  background: #1a1f3a;
+}
+
+.nexus-tab {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #595d66;
+  cursor: pointer;
+  padding: 0.8rem 0.2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.nexus-tab-active {
+  border-color: #0f1535;
+  color: #0f1535;
+}
+
+.nexus-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #e3e5ea;
+  border-radius: 999px;
+  background: #fff;
+  padding: 0.28rem 0.52rem;
+  color: #595d66;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.nexus-field {
+  border: 1px solid #e4e7ee;
+  border-radius: 0.65rem;
+  background: #fbfcfe;
+  padding: 0.8rem;
+}
+
+.nexus-muted {
+  color: #7b7f89;
+}
+
+.nexus-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cfd4df transparent;
+}
+
+@media (max-width: 1180px) {
+  .nexus-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .nexus-main-grid,
+  .nexus-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .nexus-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
