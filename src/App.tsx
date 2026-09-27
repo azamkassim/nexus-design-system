@@ -493,7 +493,7 @@ function WorkspaceView({
 
       <section className="nexus-grid nexus-workspace-grid">
         <aside className="nexus-card h-fit overflow-hidden">
-          <div className="nexus-section-header">CAR / Assessment Sections</div>
+          <div className="nexus-section-header">Assessment Sections</div>
           <div className="max-h-[68vh] overflow-y-auto nexus-scroll">
             {workspace.sections.map((item, index) => {
               const active = item.id === selectedSectionId;
@@ -626,7 +626,7 @@ function WorkspaceView({
               </button>
             </div>
             <div className="mt-md grid gap-sm md:grid-cols-4">
-              {['CAR', 'Executive Summary', 'Committee Slides', 'Approval / Risk Memo'].map(
+              {['Credit Paper', 'Executive Summary', 'Committee Slides', 'Approval / Risk Memo'].map(
                 (item) => (
                   <div
                     key={item}
