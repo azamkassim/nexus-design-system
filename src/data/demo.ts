@@ -45,7 +45,7 @@ export const engines: Engine[] = [
   { id: 'credit', name: 'Credit Intelligence', shortName: 'CREDIT', purpose: 'Surface strengths, weaknesses, mitigants and gaps.', status: 'active', humanGate: true },
   { id: 'policy', name: 'Policy & Decisioning', shortName: 'POLICY', purpose: 'Evaluate policy clauses, exceptions and conditions.', status: 'active', humanGate: true },
   { id: 'workflow', name: 'Workflow & Approvals', shortName: 'FLOW', purpose: 'Ownership, stage gates, blockers and approvals.', status: 'active', humanGate: true },
-  { id: 'reporting', name: 'Reporting & Document Generation', shortName: 'REPORTS', purpose: 'Generate CAR, ES, memo and committee slides.', status: 'active', humanGate: true },
+  { id: 'reporting', name: 'Reporting & Document Generation', shortName: 'REPORTS', purpose: 'Generate credit papers, executive summaries, memos and approval slides.', status: 'active', humanGate: true },
   { id: 'monitoring', name: 'Monitoring & Alerts', shortName: 'MONITOR', purpose: 'Track due dates, deterioration and handoff conditions.', status: 'idle', humanGate: false },
   { id: 'integration', name: 'Integration & Synchronisation', shortName: 'CONNECT', purpose: 'Move governed data between approved systems.', status: 'review', humanGate: true },
 ];
@@ -89,7 +89,7 @@ export const tasks: Task[] = [
   },
   {
     id: 't4',
-    title: 'Prepare credit committee narrative',
+    title: 'Prepare approval committee narrative',
     ownerId: 'lead',
     customerId: 'demo-2',
     workspaceSection: 'Risk, Mitigants & Recommendation',
@@ -153,7 +153,7 @@ const makeSections = (seed: number) =>
               source: 'Customer request / term sheet',
               evidenceState: 'verified' as const,
               enteredBy: 'extracted' as const,
-              reusedIn: ['CAR', 'ES', 'Slides', 'Approval Memo'],
+              reusedIn: ['Credit Paper', 'Executive Summary', 'Slides', 'Approval Memo'],
             },
             {
               id: id + '-2',
@@ -162,7 +162,7 @@ const makeSections = (seed: number) =>
               source: 'Application documents',
               evidenceState: 'verified' as const,
               enteredBy: 'rm' as const,
-              reusedIn: ['CAR', 'ES', 'Slides'],
+              reusedIn: ['Credit Paper', 'Executive Summary', 'Slides'],
             },
           ]
         : id === 'financials'
@@ -174,7 +174,7 @@ const makeSections = (seed: number) =>
                 source: 'CFFS calculation',
                 evidenceState: seed === 3 ? ('gap' as const) : ('derived' as const),
                 enteredBy: 'calculated' as const,
-                reusedIn: ['CAR', 'ES', 'Scorecard', 'Slides'],
+                reusedIn: ['Credit Paper', 'Executive Summary', 'Scorecard', 'Slides'],
               },
             ]
           : [],
