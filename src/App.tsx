@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { engines, tasks, teamMembers, workspaces } from './data/demo';
+import { engines, teamMembers } from './data/demo';
+import { useNexusDemoState } from './state/useNexusDemoState';
 import type { CustomerWorkspace, Engine, Task, WorkStatus } from './domain/nexus';
 
 type ViewMode = 'dashboard' | 'workspace' | 'engines';
@@ -30,8 +31,10 @@ const riskTone = {
 
 function App() {
   const [view, setView] = useState<ViewMode>('dashboard');
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(workspaces[0].id);
-  const [selectedSectionId, setSelectedSectionId] = useState(workspaces[0].sections[0].id);
+  const nexus = useNexusDemoState();
+  const { workspaces, tasks } = nexus;
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState('demo-1');
+  const [selectedSectionId, setSelectedSectionId] = useState('executive');
   const [selectedEngineId, setSelectedEngineId] = useState(engines[0].id);
 
   const selectedWorkspace =
@@ -97,19 +100,28 @@ function App() {
       <main className="mx-auto max-w-[1600px] px-lg py-lg">
         {view === 'dashboard' && (
           <Dashboard
+            workspaces={workspaces}
             openTasks={openTasks}
             blockedTasks={blockedTasks}
             reviewTasks={reviewTasks}
             dueToday={dueToday}
             onOpenWorkspace={handleWorkspaceOpen}
+            onCompleteTask={nexus.completeTask}
+            onReassignTask={nexus.reassignTask}
           />
         )}
 
         {view === 'workspace' && (
           <WorkspaceView
             workspace={selectedWorkspace}
+            workspaces={workspaces}
+            tasks={tasks}
             selectedSectionId={selectedSection.id}
             onSelectSection={setSelectedSectionId}
+            onSaveDraft={nexus.saveSectionDraft}
+            onSubmitReview={nexus.submitSectionForReview}
+            onApprove={nexus.approveSection}
+            onReturn={nexus.returnSection}
             onSelectWorkspace={(workspaceId) => {
               setSelectedWorkspaceId(workspaceId);
               const next = workspaces.find((workspace) => workspace.id === workspaceId);
@@ -150,17 +162,23 @@ function TopNavButton({
 }
 
 function Dashboard({
+  workspaces,
   openTasks,
   blockedTasks,
   reviewTasks,
   dueToday,
   onOpenWorkspace,
+  onCompleteTask,
+  onReassignTask,
 }: {
+  workspaces: CustomerWorkspace[];
   openTasks: Task[];
   blockedTasks: Task[];
   reviewTasks: Task[];
   dueToday: Task[];
   onOpenWorkspace: (workspace: CustomerWorkspace) => void;
+  onCompleteTask: (taskId: string) => void;
+  onReassignTask: (taskId: string, ownerId: string) => void;
 }) {
   const teamUtilisation = Math.round(
     teamMembers.reduce((sum, member) => sum + member.capacity, 0) / teamMembers.length,
@@ -292,7 +310,13 @@ function Dashboard({
 
             <div className="divide-y divide-graphite-100">
               {openTasks.map((task) => (
-                <TaskRow key={task.id} task={task} />
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  workspaceName={workspaces.find((item) => item.id === task.customerId)?.customerName}
+                  onComplete={onCompleteTask}
+                  onReassign={onReassignTask}
+                />
               ))}
             </div>
           </div>
@@ -372,9 +396,18 @@ function Dashboard({
   );
 }
 
-function TaskRow({ task }: { task: Task }) {
+function TaskRow({
+  task,
+  workspaceName,
+  onComplete,
+  onReassign,
+}: {
+  task: Task;
+  workspaceName?: string;
+  onComplete?: (taskId: string) => void;
+  onReassign?: (taskId: string, ownerId: string) => void;
+}) {
   const owner = teamMembers.find((member) => member.id === task.ownerId);
-  const workspace = workspaces.find((item) => item.id === task.customerId);
 
   return (
     <div className="px-md py-sm">
@@ -394,12 +427,31 @@ function TaskRow({ task }: { task: Task }) {
           </div>
           <div className="mt-sm font-semibold text-navy-950">{task.title}</div>
           <div className="mt-xs text-xs text-graphite-500">
-            {workspace?.customerName} • {task.workspaceSection} • {task.evidenceCount} evidence items
+            {workspaceName ?? 'Workspace'} • {task.workspaceSection} • {task.evidenceCount} evidence items
           </div>
         </div>
-        <div className="text-right text-xs">
-          <div className="font-semibold text-navy-900">{owner?.name}</div>
-          <div className="mt-xs text-graphite-500">{task.due}</div>
+        <div className="flex items-center gap-sm text-right text-xs">
+          {onReassign && (
+            <select
+              aria-label="Task owner"
+              value={task.ownerId}
+              onChange={(event) => onReassign(task.id, event.target.value)}
+              className="rounded-md border border-graphite-100 bg-white px-xs py-xs text-xs"
+            >
+              {teamMembers.map((member) => (
+                <option key={member.id} value={member.id}>{member.name}</option>
+              ))}
+            </select>
+          )}
+          <div>
+            <div className="font-semibold text-navy-900">{owner?.name}</div>
+            <div className="mt-xs text-graphite-500">{task.due}</div>
+          </div>
+          {onComplete && task.status !== 'complete' && (
+            <button type="button" className="nexus-btn" onClick={() => onComplete(task.id)}>
+              Done
+            </button>
+          )}
         </div>
       </div>
       {task.nextBestAction && (
@@ -422,14 +474,26 @@ function Rhythm({ time, label }: { time: string; label: string }) {
 
 function WorkspaceView({
   workspace,
+  workspaces,
+  tasks,
   selectedSectionId,
   onSelectSection,
   onSelectWorkspace,
+  onSaveDraft,
+  onSubmitReview,
+  onApprove,
+  onReturn,
 }: {
   workspace: CustomerWorkspace;
+  workspaces: CustomerWorkspace[];
+  tasks: Task[];
   selectedSectionId: string;
   onSelectSection: (sectionId: string) => void;
   onSelectWorkspace: (workspaceId: string) => void;
+  onSaveDraft: (workspaceId: string, sectionId: string, input: { observation: string; evidenceSource: string }) => void;
+  onSubmitReview: (workspaceId: string, sectionId: string) => void;
+  onApprove: (workspaceId: string, sectionId: string) => void;
+  onReturn: (workspaceId: string, sectionId: string) => void;
 }) {
   const section =
     workspace.sections.find((item) => item.id === selectedSectionId) ?? workspace.sections[0];
@@ -596,7 +660,9 @@ function WorkspaceView({
                     </div>
                   ))
                 ) : (
-                  <DataEntryPlaceholder />
+                  <DataEntryPlaceholder
+                    onSave={(input) => onSaveDraft(workspace.id, section.id, input)}
+                  />
                 )}
               </div>
             </div>
@@ -605,12 +671,36 @@ function WorkspaceView({
           <div className="nexus-card overflow-hidden">
             <div className="nexus-section-header">Section Tasks & Evidence</div>
             {relatedTasks.length > 0 ? (
-              relatedTasks.map((task) => <TaskRow key={task.id} task={task} />)
+              relatedTasks.map((task) => (
+                <TaskRow key={task.id} task={task} workspaceName={workspace.customerName} />
+              ))
             ) : (
               <div className="p-md text-sm text-graphite-500">
                 No open section-specific task. Evidence can continue to be attached and verified.
               </div>
             )}
+          </div>
+
+          <div className="nexus-card p-md">
+            <div className="flex flex-wrap items-center justify-between gap-md">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wide text-graphite-500">
+                  Human Review Gate
+                </div>
+                <h3 className="mt-xs">RM prepares. Team Lead decides the section state.</h3>
+              </div>
+              <div className="flex flex-wrap gap-sm">
+                <button type="button" className="nexus-btn" onClick={() => onSubmitReview(workspace.id, section.id)}>
+                  Submit for review
+                </button>
+                <button type="button" className="nexus-btn" onClick={() => onReturn(workspace.id, section.id)}>
+                  Return to RM
+                </button>
+                <button type="button" className="nexus-btn nexus-btn-primary" onClick={() => onApprove(workspace.id, section.id)}>
+                  Team Lead approve
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="nexus-card p-md">
@@ -711,7 +801,22 @@ function SummaryCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DataEntryPlaceholder() {
+function DataEntryPlaceholder({
+  onSave,
+}: {
+  onSave: (input: { observation: string; evidenceSource: string }) => void;
+}) {
+  const [observation, setObservation] = useState('');
+  const [evidenceSource, setEvidenceSource] = useState('');
+  const canSave = observation.trim().length > 0;
+
+  const save = () => {
+    if (!canSave) return;
+    onSave({ observation, evidenceSource });
+    setObservation('');
+    setEvidenceSource('');
+  };
+
   return (
     <div className="md:col-span-2">
       <div className="grid gap-sm md:grid-cols-2">
@@ -723,6 +828,8 @@ function DataEntryPlaceholder() {
             rows={4}
             className="mt-sm w-full resize-y rounded-md border border-graphite-100 bg-white p-sm text-sm"
             placeholder="Enter only non-extractable RM judgement or verified observation..."
+            value={observation}
+            onChange={(event) => setObservation(event.target.value)}
           />
         </label>
 
@@ -734,6 +841,8 @@ function DataEntryPlaceholder() {
             rows={4}
             className="mt-sm w-full resize-y rounded-md border border-graphite-100 bg-white p-sm text-sm"
             placeholder="Document, page, clause, meeting record, system check..."
+            value={evidenceSource}
+            onChange={(event) => setEvidenceSource(event.target.value)}
           />
         </label>
       </div>
@@ -741,7 +850,12 @@ function DataEntryPlaceholder() {
         <div className="text-xs text-graphite-500">
           Draft remains unverified until evidence is attached or Team Lead confirms the judgement.
         </div>
-        <button type="button" className="nexus-btn">
+        <button
+          type="button"
+          className="nexus-btn"
+          disabled={!canSave}
+          onClick={save}
+        >
           Save section draft
         </button>
       </div>
