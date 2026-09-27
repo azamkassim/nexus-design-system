@@ -114,17 +114,26 @@ export const tasks: Task[] = [
 ];
 
 const commonSections = [
-  ['proposal', 'Proposal Snapshot'],
-  ['customer', 'Customer & Group'],
-  ['management', 'Ownership & Management'],
-  ['facility', 'Facility & Purpose'],
-  ['contract', 'Contract / Revenue Base'],
-  ['financials', 'Financials & Cash Flow'],
-  ['conduct', 'Account Conduct & External Checks'],
-  ['security', 'Security'],
-  ['risk', 'Risk, Mitigants & Recommendation'],
-  ['policy', 'Policy, Conditions & Approval'],
-  ['handoff', 'Decision & Team 2 Handoff'],
+  ['executive-summary', 'A. Executive Summary'],
+  ['guideline-breaches', 'B. Financing Guideline Breaches'],
+  ['facility', '1.0 Facility Details'],
+  ['security', '2.0 Security Details'],
+  ['secured-computation', '3.0 Secured / Unsecured Computation'],
+  ['purpose', '4.0 Purpose of Financing'],
+  ['business', '5.0 Business Information'],
+  ['financials', '6.0 Historical Financial Information'],
+  ['contract', '7.0 The Contract'],
+  ['payment-capacity', '8.0 Analysis on Payment Capacity'],
+  ['industry', '9.0 Industry & Market Analysis'],
+  ['exposure', '10.0 Exposure Summary'],
+  ['risk', '11.0 Risk Analysis, Mitigation & Risk Monitoring Strategy'],
+  ['adverse', '12.0 Adverse Findings & Third-Party Checking'],
+  ['shariah', '13.0 Shariah Assessment'],
+  ['justification', '14.0 Justification for the Financing'],
+  ['recommendation', '15.0 Recommendation (Signing)'],
+  ['attachments', '16.0 Attachments'],
+  ['credit-comment', '17.0 Credit Evaluation & Approval Comment'],
+  ['handoff', 'Team 2 Handoff'],
 ] as const;
 
 const makeSections = (seed: number) =>
