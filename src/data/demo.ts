@@ -3,7 +3,7 @@ import type {
   Engine,
   Task,
   TeamMember,
-} from './domain/nexus';
+} from '../domain/nexus';
 
 export const teamMembers: TeamMember[] = [
   {
@@ -132,12 +132,17 @@ const makeSections = (seed: number) =>
     id,
     label,
     progress: Math.min(100, 42 + seed * 8 + index * 4),
-    status: index < seed + 3 ? ('complete' as const) : index === seed + 3 ? ('in_progress' as const) : ('ready' as const),
+    status:
+      index < seed + 3
+        ? ('complete' as const)
+        : index === seed + 3
+          ? ('in_progress' as const)
+          : ('ready' as const),
     fields:
       id === 'facility'
         ? [
             {
-              id: `${id}-1`,
+              id: id + '-1',
               label: 'Requested Amount',
               value: seed === 1 ? 'RM 18.0m' : seed === 2 ? 'RM 7.5m' : 'RM 12.0m',
               source: 'Customer request / term sheet',
@@ -146,7 +151,7 @@ const makeSections = (seed: number) =>
               reusedIn: ['CAR', 'ES', 'Slides', 'Approval Memo'],
             },
             {
-              id: `${id}-2`,
+              id: id + '-2',
               label: 'Financing Purpose',
               value: 'Contract execution and working capital',
               source: 'Application documents',
@@ -158,7 +163,7 @@ const makeSections = (seed: number) =>
         : id === 'financials'
           ? [
               {
-                id: `${id}-1`,
+                id: id + '-1',
                 label: 'Cash-flow Coverage',
                 value: seed === 1 ? '1.31x' : seed === 2 ? '1.18x' : 'Pending',
                 source: 'CFFS calculation',
