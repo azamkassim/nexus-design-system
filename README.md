@@ -31,4 +31,6 @@ npm run dev
 npm run build
 ```
 
-Design rationale: [docs/SOURCING-REFERENCE-ARCHITECTURE.md](docs/SOURCING-REFERENCE-ARCHITECTURE.md)\n\nUniversal action routing: [docs/NEXUS-UNIVERSAL-ACTION-PROTOCOL.md](docs/NEXUS-UNIVERSAL-ACTION-PROTOCOL.md)
+Design rationale: [docs/SOURCING-REFERENCE-ARCHITECTURE.md](docs/SOURCING-REFERENCE-ARCHITECTURE.md)
+
+Universal action routing: [docs/NEXUS-UNIVERSAL-ACTION-PROTOCOL.md](docs/NEXUS-UNIVERSAL-ACTION-PROTOCOL.md)
