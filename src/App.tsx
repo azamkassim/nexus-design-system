@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
+import PresentationPanel from './PresentationPanel'
 
-const tabs = ['Overview', 'Tasks', 'Evidence', 'Financial', 'Credit', 'Policy', 'Documents', 'Outputs', 'Timeline'] as const
+const tabs = ['Overview', 'Tasks', 'Evidence', 'Financial', 'Credit', 'Policy', 'Documents', 'Outputs', 'Presentations', 'Timeline'] as const
 type Tab = (typeof tabs)[number]
 
 type Task = {
@@ -176,7 +177,11 @@ function App() {
       )
     }
 
-    const placeholder: Record<Exclude<Tab, 'Overview' | 'Tasks' | 'Evidence'>, { title: string; lines: string[] }> = {
+    if (activeTab === 'Presentations') {
+      return <PresentationPanel />
+    }
+
+    const placeholder: Record<Exclude<Tab, 'Overview' | 'Tasks' | 'Evidence' | 'Presentations'>, { title: string; lines: string[] }> = {
       Financial: { title: 'Financial Engine', lines: ['3-year spreading', 'Ratios and trends', 'Projected cash flow', 'Sensitivity and covenant checks'] },
       Credit: { title: 'Credit Intelligence', lines: ['Strengths and weaknesses', 'Repayment source', 'Risk mitigants', 'Recommendation with evidence links'] },
       Policy: { title: 'Policy & Decisioning', lines: ['Effective-dated rules', 'Clause-level evidence', 'Exception register', 'Human decision gate'] },
