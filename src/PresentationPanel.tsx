@@ -72,7 +72,7 @@ function PresentationPanel() {
   const selectedOutput = outputs.find((item) => item.kind === selected) ?? outputs[0]
 
   const exportHtml = () => {
-    const fileName = `nexus-${selected.toLowerCase().replaceAll('_', '-')}.html`
+    const fileName = `nexus-${selected.toLowerCase().replace(/_/g, '-')}.html`
     download(fileName, buildPortableHtmlDeck(plan), 'text/html;charset=utf-8')
   }
 
