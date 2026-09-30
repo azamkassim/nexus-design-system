@@ -1,5 +1,10 @@
 import { useMemo, useState } from 'react'
 import PresentationPanel from './PresentationPanel'
+import {
+  assessCashflowScenario,
+  type CashflowPolicy,
+  type CashflowScenario,
+} from './nexus'
 
 const tabs = ['Overview', 'Tasks', 'Evidence', 'Financial', 'Credit', 'Policy', 'Documents', 'Outputs', 'Presentations', 'Timeline'] as const
 type Tab = (typeof tabs)[number]
@@ -21,6 +26,7 @@ type Evidence = {
 const tasks: Task[] = [
   { title: 'Confirm security package', owner: 'RM', status: 'Blocked', reason: 'Awaiting independent valuation' },
   { title: 'Complete financial spreading', owner: 'RM', status: 'Ready' },
+  { title: 'Review projected cashflow', owner: 'Team Lead', status: 'Ready' },
   { title: 'Draft facility structure', owner: 'Credit', status: 'Ready' },
   { title: 'Prepare preliminary Executive Summary', owner: 'NEXUS', status: 'Ready' },
   { title: 'Validate customer mandate', owner: 'RM', status: 'Done' },
@@ -46,9 +52,108 @@ const activity = [
   ['11:55', 'Output', 'Preliminary ES regenerated from governed data'],
 ]
 
+const cashflowPolicy: CashflowPolicy = {
+  minimumClosingCash: 100_000,
+  minimumDebtServiceCoverage: 1.2,
+  maximumCollectionDelayDays: 60,
+}
+
+const cashflowScenarios: CashflowScenario[] = [
+  {
+    id: 'contract-a-base',
+    label: 'Contract A · Base',
+    kind: 'BASE',
+    collectionDelayDays: 30,
+    months: [
+      {
+        period: 'Oct 2026',
+        openingCash: 450_000,
+        customerCollections: 900_000,
+        otherInflows: 0,
+        operatingOutflows: 950_000,
+        capex: 100_000,
+        scheduledDebtService: 120_000,
+        financingDrawdown: 200_000,
+        financingRepayment: 0,
+      },
+      {
+        period: 'Nov 2026',
+        openingCash: 380_000,
+        customerCollections: 1_150_000,
+        otherInflows: 0,
+        operatingOutflows: 870_000,
+        capex: 50_000,
+        scheduledDebtService: 120_000,
+        financingDrawdown: 0,
+        financingRepayment: 0,
+      },
+      {
+        period: 'Dec 2026',
+        openingCash: 490_000,
+        customerCollections: 1_050_000,
+        otherInflows: 0,
+        operatingOutflows: 860_000,
+        capex: 40_000,
+        scheduledDebtService: 120_000,
+        financingDrawdown: 0,
+        financingRepayment: 150_000,
+      },
+    ],
+  },
+  {
+    id: 'contract-a-downside',
+    label: 'Contract A · Downside',
+    kind: 'DOWNSIDE',
+    collectionDelayDays: 75,
+    months: [
+      {
+        period: 'Oct 2026',
+        openingCash: 450_000,
+        customerCollections: 650_000,
+        otherInflows: 0,
+        operatingOutflows: 950_000,
+        capex: 100_000,
+        scheduledDebtService: 120_000,
+        financingDrawdown: 200_000,
+        financingRepayment: 0,
+      },
+      {
+        period: 'Nov 2026',
+        openingCash: 130_000,
+        customerCollections: 760_000,
+        otherInflows: 0,
+        operatingOutflows: 900_000,
+        capex: 50_000,
+        scheduledDebtService: 120_000,
+        financingDrawdown: 100_000,
+        financingRepayment: 0,
+      },
+      {
+        period: 'Dec 2026',
+        openingCash: -80_000,
+        customerCollections: 820_000,
+        otherInflows: 0,
+        operatingOutflows: 880_000,
+        capex: 40_000,
+        scheduledDebtService: 120_000,
+        financingDrawdown: 0,
+        financingRepayment: 150_000,
+      },
+    ],
+  },
+]
+
+const cashflowViews = cashflowScenarios.map((scenario) => assessCashflowScenario(scenario, cashflowPolicy))
+const primaryCashflowView = cashflowViews[0]
+
 function StatusPill({ status }: { status: Task['status'] }) {
   const cls = status === 'Done' ? 'success' : status === 'Blocked' ? 'danger' : 'info'
   return <span className={`pill ${cls}`}>{status}</span>
+}
+
+function CashflowGatePill({ gate }: { gate: 'PASS' | 'REVIEW' | 'BLOCKED' }) {
+  const cls = gate === 'PASS' ? 'success' : gate === 'BLOCKED' ? 'danger' : 'warning'
+  return <span className={`pill ${cls}`}>{gate}</span>
 }
 
 function Progress({ value }: { value: number }) {
@@ -57,6 +162,14 @@ function Progress({ value }: { value: number }) {
       <div className="progress-fill" style={{ width: `${value}%` }} />
     </div>
   )
+}
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('en-MY', {
+    style: 'currency',
+    currency: 'MYR',
+    maximumFractionDigits: 0,
+  }).format(value)
 }
 
 function App() {
@@ -72,10 +185,10 @@ function App() {
             <div className="section-kicker">NEXUS NEXT BEST ACTION</div>
             <div className="next-action-row">
               <div>
-                <h2>Continue work while valuation is pending</h2>
-                <p>The security gate is blocked, but three independent tasks can proceed now.</p>
+                <h2>Review cashflow while valuation is pending</h2>
+                <p>The security gate is blocked, but cashflow review and other independent tasks can proceed now.</p>
               </div>
-              <button className="primary-button">Start next task →</button>
+              <button className="primary-button" onClick={() => setActiveTab('Financial')}>Open cashflow →</button>
             </div>
             <div className="action-strip">
               {readyTasks.map((task) => (
@@ -111,6 +224,39 @@ function App() {
           <section className="panel">
             <div className="panel-heading">
               <div>
+                <div className="section-kicker">CASHFLOW READINESS</div>
+                <h3>{primaryCashflowView.scenarioLabel}</h3>
+              </div>
+              <CashflowGatePill gate={primaryCashflowView.gate} />
+            </div>
+            <div className="evidence-list">
+              <div className="evidence-row">
+                <span className="check">↘</span>
+                <div>
+                  <strong>Minimum cash</strong>
+                  <small>{formatCurrency(primaryCashflowView.minimumClosingCash)} · {primaryCashflowView.minimumClosingCashPeriod ?? 'n/a'}</small>
+                </div>
+              </div>
+              <div className="evidence-row">
+                <span className="pending">△</span>
+                <div>
+                  <strong>Peak funding gap</strong>
+                  <small>{formatCurrency(primaryCashflowView.peakFundingGap)} · {primaryCashflowView.peakFundingGapPeriod ?? 'none'}</small>
+                </div>
+              </div>
+              <div className="evidence-row">
+                <span className="check">×</span>
+                <div>
+                  <strong>Weakest debt-service coverage</strong>
+                  <small>{primaryCashflowView.minimumDebtServiceCoverage?.toFixed(2) ?? 'n/a'}x · {primaryCashflowView.minimumDebtServiceCoveragePeriod ?? 'n/a'}</small>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-heading">
+              <div>
                 <div className="section-kicker">EVIDENCE HEALTH</div>
                 <h3>{verifiedCount}/{evidence.length} verified</h3>
               </div>
@@ -134,7 +280,7 @@ function App() {
             <h3>One governed customer model</h3>
             <p>Structured facts and verified evidence flow into every downstream output instead of being re-keyed.</p>
             <div className="flow">
-              <span>Data entry</span><b>→</b><span>Evidence</span><b>→</b><span>Analysis</span><b>→</b><span>Decision</span><b>→</b><span>Outputs</span>
+              <span>Data entry</span><b>→</b><span>Evidence</span><b>→</b><span>Cashflow</span><b>→</b><span>Decision</span><b>→</b><span>Outputs</span>
             </div>
           </section>
         </div>
@@ -177,14 +323,72 @@ function App() {
       )
     }
 
+    if (activeTab === 'Financial') {
+      return (
+        <div className="overview-grid">
+          <section className="panel next-action">
+            <div className="panel-heading">
+              <div>
+                <div className="section-kicker">CASHFLOW DECISION VIEW</div>
+                <h2>Can the proposed structure survive the timing of cash?</h2>
+              </div>
+              <CashflowGatePill gate={primaryCashflowView.gate} />
+            </div>
+            <p>Contract-level synthetic demo. Governed policy thresholds drive the gate; NEXUS does not hard-code approval decisions.</p>
+            <div className="metrics">
+              <div className="metric"><span>Minimum cash</span><strong>{formatCurrency(primaryCashflowView.minimumClosingCash)}</strong><small>{primaryCashflowView.minimumClosingCashPeriod ?? 'n/a'}</small></div>
+              <div className="metric"><span>Peak funding gap</span><strong>{formatCurrency(primaryCashflowView.peakFundingGap)}</strong><small>{primaryCashflowView.peakFundingGapPeriod ?? 'none'}</small></div>
+              <div className="metric"><span>Debt-service coverage</span><strong>{primaryCashflowView.minimumDebtServiceCoverage?.toFixed(2) ?? 'n/a'}x</strong><small>{primaryCashflowView.minimumDebtServiceCoveragePeriod ?? 'n/a'}</small></div>
+              <div className="metric"><span>Collection delay</span><strong>{primaryCashflowView.collectionDelayDays ?? 0} days</strong><small>tolerance: {cashflowPolicy.maximumCollectionDelayDays ?? 'n/a'} days</small></div>
+            </div>
+          </section>
+
+          <section className="panel table-panel">
+            <div className="panel-heading">
+              <div>
+                <div className="section-kicker">SCENARIO COMPARISON</div>
+                <h3>Base versus downside</h3>
+              </div>
+            </div>
+            <div className="table">
+              {cashflowViews.map((view) => (
+                <div className="table-row four" key={view.scenarioId}>
+                  <div><strong>{view.scenarioLabel}</strong><small>Minimum cash: {formatCurrency(view.minimumClosingCash)}</small></div>
+                  <span>{view.minimumDebtServiceCoverage?.toFixed(2) ?? 'n/a'}x DSCR</span>
+                  <span>{formatCurrency(view.peakFundingGap)} gap</span>
+                  <CashflowGatePill gate={view.gate} />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="section-kicker">WHY THIS GATE</div>
+            <h3>{primaryCashflowView.scenarioLabel}</h3>
+            <div className="placeholder-list">
+              {primaryCashflowView.reasons.map((reason) => <div key={reason}><span>•</span>{reason}</div>)}
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="section-kicker">NEXT BEST ACTION</div>
+            <h3>What Azam needs to do next</h3>
+            <div className="placeholder-list">
+              {primaryCashflowView.nextActions.map((action) => <div key={action}><span>→</span>{action}</div>)}
+            </div>
+            <div className="gate-footer">Human decision remains with the authorised credit decision maker.</div>
+          </section>
+        </div>
+      )
+    }
+
     if (activeTab === 'Presentations') {
       return <PresentationPanel />
     }
 
-    const placeholder: Record<Exclude<Tab, 'Overview' | 'Tasks' | 'Evidence' | 'Presentations'>, { title: string; lines: string[] }> = {
-      Financial: { title: 'Financial Engine', lines: ['3-year spreading', 'Ratios and trends', 'Projected cash flow', 'Sensitivity and covenant checks'] },
-      Credit: { title: 'Credit Intelligence', lines: ['Strengths and weaknesses', 'Repayment source', 'Risk mitigants', 'Recommendation with evidence links'] },
-      Policy: { title: 'Policy & Decisioning', lines: ['Effective-dated rules', 'Clause-level evidence', 'Exception register', 'Human decision gate'] },
+    const placeholder: Record<Exclude<Tab, 'Overview' | 'Tasks' | 'Evidence' | 'Financial' | 'Presentations'>, { title: string; lines: string[] }> = {
+      Credit: { title: 'Credit Intelligence', lines: ['Strengths and weaknesses', 'Repayment source', 'Cashflow gate and stress outcome', 'Risk mitigants', 'Recommendation with evidence links'] },
+      Policy: { title: 'Policy & Decisioning', lines: ['Effective-dated rules', 'Clause-level evidence', 'Cashflow thresholds', 'Exception register', 'Human decision gate'] },
       Documents: { title: 'Document Intelligence', lines: ['Source pack', 'Extraction status', 'Duplicates and conflicts', 'Missing-document requests'] },
       Outputs: { title: 'Generated Outputs', lines: ['Pre-Assessment Memo', 'CAR', 'Executive Summary', 'Committee slides', 'LO / disbursement pack'] },
       Timeline: { title: 'Immutable Activity Timeline', lines: activity.map((item) => `${item[0]} · ${item[1]} · ${item[2]}`) },
@@ -242,7 +446,7 @@ function App() {
             <h1>ORION DEMO SDN BHD</h1>
             <div className="meta-line">
               <span className="pill info">Credit Assessment</span>
-              <span>Team 1 · Financing</span>
+              <span>Team 1 · Pre Approval</span>
               <span>Owner: RM Demo</span>
               <span>Last evidence sync: 13:02</span>
             </div>
@@ -255,8 +459,8 @@ function App() {
         </header>
 
         <section className="metrics">
-          <div className="metric"><span>Next action</span><strong>Financial spreading</strong><small>Ready now</small></div>
-          <div className="metric"><span>Blockers</span><strong>1</strong><small>Valuation</small></div>
+          <div className="metric"><span>Next action</span><strong>Cashflow review</strong><small>Ready now</small></div>
+          <div className="metric"><span>Cashflow gate</span><strong>{primaryCashflowView.gate}</strong><small>{primaryCashflowView.scenarioLabel}</small></div>
           <div className="metric"><span>Evidence</span><strong>{verifiedCount}/{evidence.length}</strong><small>verified</small></div>
           <div className="metric"><span>Open tasks</span><strong>{tasks.filter((task) => task.status !== 'Done').length}</strong><small>{readyTasks.length} ready now</small></div>
         </section>
