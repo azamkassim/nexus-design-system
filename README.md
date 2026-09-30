@@ -13,6 +13,7 @@ The repository now contains a runnable React/Vite command-center prototype demon
 - stage gates;
 - evidence provenance and verification state;
 - enter-once / reuse-everywhere workflow;
+- governed cashflow intelligence with readiness-gate outputs;
 - synthetic multi-team workspace overview;
 - responsive desktop/mobile layout.
 
@@ -34,3 +35,5 @@ npm run build
 Design rationale: [docs/SOURCING-REFERENCE-ARCHITECTURE.md](docs/SOURCING-REFERENCE-ARCHITECTURE.md)
 
 Universal action routing: [docs/NEXUS-UNIVERSAL-ACTION-PROTOCOL.md](docs/NEXUS-UNIVERSAL-ACTION-PROTOCOL.md)
+
+Cashflow intelligence: [docs/CASHFLOW-INTELLIGENCE.md](docs/CASHFLOW-INTELLIGENCE.md)
